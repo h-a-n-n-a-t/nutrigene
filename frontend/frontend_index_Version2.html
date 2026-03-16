@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NutriGene - Genetic Mutation Diagnosis & Nutrition Analysis</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="animated-bg"></div>
+    
+    <div class="container">
+        <header class="header">
+            <div class="floating-particles">
+                <div class="particle"></div>
+                <div class="particle"></div>
+                <div class="particle"></div>
+                <div class="particle"></div>
+                <div class="particle"></div>
+            </div>
+            <div class="header-content">
+                <h1 class="title-animated">🧬 NutriGene</h1>
+                <p class="tagline">Genetic Mutation Diagnosis & Personalized Nutrition Analysis</p>
+                <div class="dna-animation">
+                    <svg viewBox="0 0 100 100" width="50" height="50">
+                        <path class="dna-strand" d="M 30,20 Q 50,30 30,40 Q 10,50 30,60 Q 50,70 30,80"/>
+                        <path class="dna-strand" d="M 70,20 Q 50,30 70,40 Q 90,50 70,60 Q 50,70 70,80"/>
+                    </svg>
+                </div>
+            </div>
+        </header>
+
+        <main id="app" class="main-content">
+            <!-- Screen 1: Welcome & Gene Selection -->
+            <div id="screen-welcome" class="screen active">
+                <section class="welcome-section">
+                    <div class="welcome-glow"></div>
+                    <h2 class="section-title">Welcome to NutriGene</h2>
+                    <p class="intro-text">
+                        🔬 Discover your genetic mutations and receive personalized nutrition recommendations 
+                        based on your genetic profile and symptoms.
+                    </p>
+                    
+                    <div class="how-it-works">
+                        <h3>How It Works</h3>
+                        <ol class="steps-list">
+                            <li class="step-item">
+                                <div class="step-icon">1</div>
+                                <div>
+                                    <strong>Answer Questions:</strong> Respond honestly to health-related questions
+                                </div>
+                            </li>
+                            <li class="step-item">
+                                <div class="step-icon">2</div>
+                                <div>
+                                    <strong>Select Response:</strong> Choose from Yes, Maybe, or No
+                                </div>
+                            </li>
+                            <li class="step-item">
+                                <div class="step-icon">3</div>
+                                <div>
+                                    <strong>Get Diagnosed:</strong> Receive your genetic mutation analysis
+                                </div>
+                            </li>
+                            <li class="step-item">
+                                <div class="step-icon">4</div>
+                                <div>
+                                    <strong>View Recommendations:</strong> Get personalized diet and lifestyle advice
+                                </div>
+                            </li>
+                        </ol>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="btn btn-primary glow-btn" onclick="goToGeneSelection()">
+                            <i class="fas fa-dna"></i> Start Diagnosis
+                        </button>
+                        <button class="btn btn-secondary glow-btn" onclick="showAbout()">
+                            <i class="fas fa-info-circle"></i> Learn More
+                        </button>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Screen 2: Gene Selection -->
+            <div id="screen-gene-selection" class="screen">
+                <section class="gene-selection-section">
+                    <h2 class="section-title">Select Gene to Test</h2>
+                    <p class="subtitle">💡 Choose a gene category to begin diagnosis</p>
+
+                    <div class="gene-categories">
+                        <div class="category">
+                            <div class="category-icon">🩺</div>
+                            <h3>Diabetes Genes</h3>
+                            <div class="gene-buttons">
+                                <button class="gene-btn" onclick="selectGene('CTLA4')">
+                                    <span class="btn-text">CTLA4</span>
+                                    <span class="btn-sub">(Type 1)</span>
+                                </button>
+                                <button class="gene-btn" onclick="selectGene('IL6')">
+                                    <span class="btn-text">IL6</span>
+                                    <span class="btn-sub">(Type 2)</span>
+                                </button>
+                                <button class="gene-btn" onclick="selectGene('VEGFA')">
+                                    <span class="btn-text">VEGFA</span>
+                                    <span class="btn-sub">(Complications)</span>
+                                </button>
+                                <button class="gene-btn" onclick="selectGene('CDKN2A')">
+                                    <span class="btn-text">CDKN2A</span>
+                                    <span class="btn-sub">(Type 2)</span>
+                                </button>
+                                <button class="gene-btn" onclick="selectGene('PPARG')">
+                                    <span class="btn-text">PPARG</span>
+                                    <span class="btn-sub">(Type 2)</span>
+                                </button>
+                                <button class="gene-btn" onclick="selectGene('TCF7L2')">
+                                    <span class="btn-text">TCF7L2</span>
+                                    <span class="btn-sub">(Type 2)</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="category">
+                            <div class="category-icon">⚖️</div>
+                            <h3>Obesity & Metabolism</h3>
+                            <div class="gene-buttons">
+                                <button class="gene-btn" onclick="selectGene('FTO')">
+                                    <span class="btn-text">FTO</span>
+                                    <span class="btn-sub">(Obesity)</span>
+                                </button>
+                                <button class="gene-btn" onclick="selectGene('MC4R')">
+                                    <span class="btn-text">MC4R</span>
+                                    <span class="btn-sub">(Severe)</span>
+                                </button>
+                                <button class="gene-btn" onclick="selectGene('LEP')">
+                                    <span class="btn-text">LEP</span>
+                                    <span class="btn-sub">(Monogenic)</span>
+                                </button>
+                                <button class="gene-btn" onclick="selectGene('LEPR')">
+                                    <span class="btn-text">LEPR</span>
+                                    <span class="btn-sub">(Resistance)</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="category">
+                            <div class="category-icon">🥛</div>
+                            <h3>Lactose Intolerance</h3>
+                            <div class="gene-buttons">
+                                <button class="gene-btn" onclick="selectGene('LCT')">
+                                    <span class="btn-text">LCT</span>
+                                    <span class="btn-sub">(Lactase Gene)</span>
+                                </button>
+                                <button class="gene-btn" onclick="selectGene('MCM6')">
+                                    <span class="btn-text">MCM6</span>
+                                    <span class="btn-sub">(Persistence)</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="category">
+                            <div class="category-icon">❤️</div>
+                            <h3>Cholesterol & Lipids</h3>
+                            <div class="gene-buttons">
+                                <button class="gene-btn" onclick="selectGene('APOE')">
+                                    <span class="btn-text">APOE</span>
+                                    <span class="btn-sub">(CVD Risk)</span>
+                                </button>
+                                <button class="gene-btn" onclick="selectGene('CETP')">
+                                    <span class="btn-text">CETP</span>
+                                    <span class="btn-sub">(Dyslipidemia)</span>
+                                </button>
+                                <button class="gene-btn" onclick="selectGene('PCSK9')">
+                                    <span class="btn-text">PCSK9</span>
+                                    <span class="btn-sub">(Hyperlipidemia)</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-secondary" onclick="goToWelcome()">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </button>
+                </section>
+            </div>
+
+            <!-- Screen 3: Questionnaire -->
+            <div id="screen-questionnaire" class="screen">
+                <section class="questionnaire-section">
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div id="progress-fill" class="progress-fill"></div>
+                        </div>
+                        <p id="question-counter" class="question-counter">Question 1 of 4</p>
+                    </div>
+
+                    <div class="gene-header">
+                        <h2 id="gene-title" class="gene-title">Gene Title</h2>
+                        <p id="gene-description" class="gene-description">Gene description</p>
+                    </div>
+
+                    <div id="questions-container" class="questions-container">
+                        <!-- Questions will be dynamically inserted here -->
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn btn-secondary" onclick="goToGeneSelection()">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </button>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Screen 4: Results -->
+            <div id="screen-results" class="screen">
+                <section class="results-section">
+                    <h2 class="section-title">Your Diagnosis Results</h2>
+
+                    <div id="diagnosis-container" class="diagnosis-container">
+                        <!-- Results will be dynamically inserted here -->
+                    </div>
+
+                    <div class="recommendations-container">
+                        <h3 class="rec-title">Personalized Recommendations</h3>
+                        <div id="recommendations" class="recommendations">
+                            <!-- Recommendations will be inserted here -->
+                        </div>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn btn-secondary" onclick="goToGeneSelection()">
+                            <i class="fas fa-flask"></i> Test Another Gene
+                        </button>
+                        <button class="btn btn-primary" onclick="downloadReport()">
+                            <i class="fas fa-download"></i> Download Report
+                        </button>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Screen 5: About -->
+            <div id="screen-about" class="screen">
+                <section class="about-section">
+                    <h2 class="section-title">About NutriGene</h2>
+                    
+                    <div class="about-content">
+                        <div class="about-card">
+                            <h3>❓ What is NutriGene?</h3>
+                            <p>
+                                NutriGene is a genetic mutation identification and personalized nutrition recommendation system.
+                                It uses a questionnaire-based approach to identify potential genetic mutations and provides
+                                tailored dietary recommendations based on your genetic profile.
+                            </p>
+                        </div>
+
+                        <div class="about-card">
+                            <h3>📊 How Accurate Is This?</h3>
+                            <p>
+                                This tool provides preliminary genetic risk assessment based on symptom analysis.
+                                For definitive genetic testing, please consult with a licensed geneticist or healthcare provider.
+                            </p>
+                        </div>
+
+                        <div class="about-card">
+                            <h3>🧬 Supported Genes</h3>
+                            <p>
+                                Currently, NutriGene can analyze mutations in 16+ genes related to:
+                            </p>
+                            <ul class="gene-list">
+                                <li><i class="fas fa-check-circle"></i> Type 1 and Type 2 Diabetes</li>
+                                <li><i class="fas fa-check-circle"></i> Obesity and Metabolism</li>
+                                <li><i class="fas fa-check-circle"></i> Lactose Intolerance</li>
+                                <li><i class="fas fa-check-circle"></i> Cholesterol and Cardiovascular Health</li>
+                            </ul>
+                        </div>
+
+                        <div class="about-card">
+                            <h3>🔒 Data Privacy</h3>
+                            <p>
+                                Your responses are processed securely and not stored permanently unless you consent to research participation.
+                            </p>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-secondary" onclick="goToWelcome()">
+                        <i class="fas fa-home"></i> Back to Home
+                    </button>
+                </section>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>🧬 &copy; 2024 NutriGene. For educational purposes only. Not a substitute for medical advice.</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
