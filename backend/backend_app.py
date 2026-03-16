@@ -1,8 +1,8 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from database import DatabaseManager
-from diagnosis_engine import DiagnosisEngine
-from questions import QUESTION_BANK, get_all_questions
+from backend_database import DatabaseManager
+from backend_diagnosis_engine import DiagnosisEngine
+from backend_questions import QUESTION_BANK, get_all_questions
 import json
 import uuid
 
@@ -14,7 +14,7 @@ db = DatabaseManager()
 diagnosis_engine = DiagnosisEngine()
 
 # Load gene data on startup
-db.load_gene_data('gene_data.json')
+db.load_gene_data('backend/backend_gene_data_Version2.json')
 
 # ==================== Routes ====================
 
