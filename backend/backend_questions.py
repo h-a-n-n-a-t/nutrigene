@@ -48,6 +48,12 @@ QUESTION_BANK = {
         {"question": "Can you tolerate aged cheeses but not fresh milk?", "category": "lifestyle", "weight": 0.7},
         {"question": "Do you prefer fermented dairy products like yogurt?", "category": "lifestyle", "weight": 0.75},
     ],
+    "MC4R":[
+        {"question": "Do you have a history of early-onset obesity?", "category": "medical_history", "weight": 0.9},
+        {"question": "Have traditional weight management efforts (diet and exercise) been ineffective?", "category": "symptoms", "weight": 0.8},
+        {"question": "Are there signs of acanthosis nigricans (dark, velvety skin patches indicating insulin resistance)?", "category": "anthropometry", "weight": 0.85},
+        {"question": "Has the patient experienced joint problems or pain due to weight?", "category": "family_history", "weight": 0.75}, 
+    ]
 }
 
 def get_questions_for_gene(gene_name):
