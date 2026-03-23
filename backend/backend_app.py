@@ -1,12 +1,38 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
+from flask.json.provider import DefaultJSONProvider
 from backend_database import DatabaseManager
 from backend_diagnosis_engine import DiagnosisEngine
-from backend_questions import QUESTION_BANK, get_all_questions
+from backend_questions import get_all_questions, get_questions_for_gene
 import json
 import uuid
+import os
+from datetime import date, datetime
+from dotenv import load_dotenv
+
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
+
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+FRONTEND_DIR = os.path.join(BACKEND_DIR, '..', 'frontend')
+
+class CustomJSONProvider(DefaultJSONProvider):
+    def default(self, obj):
+        if isinstance(obj, (datetime, date)):
+            return obj.isoformat()
+        return super().default(obj)
+
+def make_json_safe(value):
+    """Convert nested values into types Flask and json.dumps can always serialize."""
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    if isinstance(value, dict):
+        return {k: make_json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [make_json_safe(item) for item in value]
+    return value
 
 app = Flask(__name__)
+app.json = CustomJSONProvider(app)
 CORS(app)
 
 # Initialize database and diagnosis engine
@@ -14,7 +40,17 @@ db = DatabaseManager()
 diagnosis_engine = DiagnosisEngine()
 
 # Load gene data on startup
-db.load_gene_data('backend/backend_gene_data_Version2.json')
+db.load_gene_data(os.path.join(BACKEND_DIR, 'backend_gene_data_Version2.json'))
+
+# ==================== Frontend Serving ====================
+
+@app.route('/')
+def serve_frontend():
+    return send_from_directory(FRONTEND_DIR, 'frontend_index_Version2.html')
+
+@app.route('/<path:filename>')
+def serve_static(filename):
+    return send_from_directory(FRONTEND_DIR, filename)
 
 # ==================== Routes ====================
 
@@ -65,13 +101,14 @@ def get_initial_questions():
 @app.route('/api/questions/<gene_name>', methods=['GET'])
 def get_gene_questions(gene_name):
     """Get specific questions for a gene"""
-    if gene_name not in QUESTION_BANK:
+    questions = get_questions_for_gene(gene_name)
+
+    if not questions:
         return jsonify({
             "success": False,
             "message": f"No questions found for gene {gene_name}"
         }), 404
-    
-    questions = QUESTION_BANK[gene_name]
+
     return jsonify({
         "success": True,
         "gene": gene_name,
@@ -103,14 +140,14 @@ def diagnose_gene(gene_name):
         user_id = str(uuid.uuid4())
         gene_id = gene_info['gene']['id'] if gene_info else None
         
-        diagnosis_result = {
+        diagnosis_result = make_json_safe({
             "gene": gene_name,
             "confidence_score": result['confidence_score'],
             "status": result['status'],
             "risk_level": result['risk_level'],
             "gene_info": gene_info,
             "answers_summary": result['answers_summary']
-        }
+        })
         
         db.save_diagnosis_result(user_id, gene_id, result['confidence_score'], answers, diagnosis_result)
         
@@ -149,14 +186,14 @@ def diagnose_multiple_genes():
         comprehensive = diagnosis_engine.multi_gene_diagnosis(all_results)
         
         # Build detailed report
-        report = {
+        report = make_json_safe({
             "primary_diagnosis": comprehensive['primary_diagnosis'],
             "secondary_diagnoses": comprehensive['secondary_diagnoses'],
             "total_genes_tested": comprehensive['total_genes_tested'],
             "positive_genes": comprehensive['positive_genes'],
             "all_results": dict(comprehensive['ranked_results']),
             "detailed_gene_info": {}
-        }
+        })
         
         # Add detailed info for top candidates
         for gene_name in comprehensive['top_candidates']:
@@ -290,4 +327,5 @@ def internal_error(error):
     }), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
