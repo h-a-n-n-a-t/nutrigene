@@ -1,27 +1,39 @@
-import sqlite3
+import psycopg2
+import psycopg2.extras
 import json
 import os
-from pathlib import Path
+from datetime import date, datetime
+
+def _make_json_safe(value):
+    """Recursively convert DB values into JSON-safe Python primitives."""
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    if isinstance(value, dict):
+        return {k: _make_json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_make_json_safe(item) for item in value]
+    return value
+
+def _row_to_dict(row):
+    if row is None:
+        return None
+    return _make_json_safe(dict(row))
 
 class DatabaseManager:
-    def __init__(self, db_path='nutrigene.db'):
-        self.db_path = db_path
+    def __init__(self):
+        self.database_url = os.environ.get('DATABASE_URL')
         self.init_database()
-    
+
     def get_connection(self):
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
-        return conn
-    
+        return psycopg2.connect(self.database_url)
+
     def init_database(self):
-        """Initialize the database with gene data"""
         conn = self.get_connection()
         cursor = conn.cursor()
-        
-        # Create genes table
+
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS genes (
-                id INTEGER PRIMARY KEY,
+                id SERIAL PRIMARY KEY,
                 gene_name TEXT UNIQUE NOT NULL,
                 description TEXT,
                 function TEXT,
@@ -30,73 +42,69 @@ class DatabaseManager:
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-        
-        # Create mutations table
+
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS mutations (
-                id INTEGER PRIMARY KEY,
-                gene_id INTEGER NOT NULL,
+                id SERIAL PRIMARY KEY,
+                gene_id INTEGER NOT NULL REFERENCES genes(id),
                 snp_id TEXT,
-                genotype TEXT,
-                FOREIGN KEY (gene_id) REFERENCES genes(id)
+                genotype TEXT
             )
         ''')
-        
-        # Create diet recommendations table
+
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS diet_recommendations (
-                id INTEGER PRIMARY KEY,
-                gene_id INTEGER NOT NULL,
+                id SERIAL PRIMARY KEY,
+                gene_id INTEGER NOT NULL REFERENCES genes(id),
                 recommendations TEXT,
                 supplements TEXT,
-                restricted_foods TEXT,
-                FOREIGN KEY (gene_id) REFERENCES genes(id)
+                restricted_foods TEXT
             )
         ''')
-        
-        # Create question bank table
+
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS questions (
-                id INTEGER PRIMARY KEY,
-                gene_id INTEGER NOT NULL,
+                id SERIAL PRIMARY KEY,
+                gene_id INTEGER NOT NULL REFERENCES genes(id),
                 question TEXT NOT NULL,
-                category TEXT,
-                FOREIGN KEY (gene_id) REFERENCES genes(id)
+                category TEXT
             )
         ''')
-        
-        # Create diagnosis results table
+
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS diagnosis_results (
-                id INTEGER PRIMARY KEY,
+                id SERIAL PRIMARY KEY,
                 user_id TEXT,
                 gene_id INTEGER,
                 confidence_score REAL,
                 answers TEXT,
-                result JSON,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (gene_id) REFERENCES genes(id)
+                result TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-        
+
         conn.commit()
+        cursor.close()
         conn.close()
-    
-    def load_gene_data(self, json_file='gene_data.json'):
-        """Load gene data from JSON file"""
+
+    def load_gene_data(self, json_file):
         try:
             with open(json_file, 'r') as f:
                 genes_data = json.load(f)
-            
+
             conn = self.get_connection()
             cursor = conn.cursor()
-            
+
             for gene in genes_data:
-                # Insert gene
                 cursor.execute('''
-                    INSERT OR REPLACE INTO genes 
-                    (gene_name, description, function, disease, aliases)
-                    VALUES (?, ?, ?, ?, ?)
+                    INSERT INTO genes (gene_name, description, function, disease, aliases)
+                    VALUES (%s, %s, %s, %s, %s)
+                    ON CONFLICT (gene_name) DO UPDATE SET
+                        description = EXCLUDED.description,
+                        function = EXCLUDED.function,
+                        disease = EXCLUDED.disease,
+                        aliases = EXCLUDED.aliases
+                    RETURNING id
                 ''', (
                     gene['gene'],
                     gene['description'],
@@ -104,90 +112,96 @@ class DatabaseManager:
                     gene['disease'],
                     gene.get('aliases', '')
                 ))
-                
-                gene_id = cursor.lastrowid
-                
-                # Insert mutations
+
+                gene_id = cursor.fetchone()[0]
+
+                cursor.execute('DELETE FROM mutations WHERE gene_id = %s', (gene_id,))
                 for snp, genotype in zip(gene.get('snp_ids', []), gene.get('genotypes', [])):
-                    cursor.execute('''
-                        INSERT INTO mutations (gene_id, snp_id, genotype)
-                        VALUES (?, ?, ?)
-                    ''', (gene_id, snp, genotype))
-                
-                # Insert diet recommendations
+                    cursor.execute(
+                        'INSERT INTO mutations (gene_id, snp_id, genotype) VALUES (%s, %s, %s)',
+                        (gene_id, snp, genotype)
+                    )
+
+                cursor.execute('DELETE FROM diet_recommendations WHERE gene_id = %s', (gene_id,))
                 cursor.execute('''
-                    INSERT INTO diet_recommendations 
-                    (gene_id, recommendations, supplements, restricted_foods)
-                    VALUES (?, ?, ?, ?)
+                    INSERT INTO diet_recommendations (gene_id, recommendations, supplements, restricted_foods)
+                    VALUES (%s, %s, %s, %s)
                 ''', (
                     gene_id,
                     gene.get('diet_recommendations', ''),
                     gene.get('nutrient_supplements', ''),
                     gene.get('restricted_food', '')
                 ))
-            
+
             conn.commit()
+            cursor.close()
             conn.close()
             print(f"Loaded {len(genes_data)} genes into database")
             return True
         except Exception as e:
             print(f"Error loading gene data: {e}")
             return False
-    
+
     def get_gene_by_name(self, gene_name):
-        """Retrieve gene information"""
         conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('SELECT * FROM genes WHERE gene_name = ?', (gene_name,))
+        cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        cursor.execute('SELECT * FROM genes WHERE gene_name = %s', (gene_name,))
         gene = cursor.fetchone()
-        
+
         if gene:
             gene_id = gene['id']
-            
-            # Get mutations
-            cursor.execute('SELECT * FROM mutations WHERE gene_id = ?', (gene_id,))
+
+            cursor.execute('SELECT * FROM mutations WHERE gene_id = %s', (gene_id,))
             mutations = cursor.fetchall()
-            
-            # Get diet recommendations
-            cursor.execute('SELECT * FROM diet_recommendations WHERE gene_id = ?', (gene_id,))
+
+            cursor.execute('SELECT * FROM diet_recommendations WHERE gene_id = %s', (gene_id,))
             diet = cursor.fetchone()
-            
+
+            cursor.close()
             conn.close()
-            
-            return {
-                'gene': dict(gene),
-                'mutations': [dict(m) for m in mutations],
-                'diet': dict(diet) if diet else None
-            }
-        
+
+            return _make_json_safe({
+                'gene': _row_to_dict(gene),
+                'mutations': [_row_to_dict(m) for m in mutations],
+                'diet': _row_to_dict(diet)
+            })
+
+        cursor.close()
         conn.close()
         return None
-    
+
     def save_diagnosis_result(self, user_id, gene_id, confidence_score, answers, result):
-        """Save diagnosis result"""
         conn = self.get_connection()
         cursor = conn.cursor()
-        
+        safe_answers = _make_json_safe(answers)
+        safe_result = _make_json_safe(result)
+
         cursor.execute('''
-            INSERT INTO diagnosis_results 
-            (user_id, gene_id, confidence_score, answers, result)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (user_id, gene_id, confidence_score, json.dumps(answers), json.dumps(result)))
-        
+            INSERT INTO diagnosis_results (user_id, gene_id, confidence_score, answers, result)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING id
+        ''', (
+            user_id,
+            gene_id,
+            confidence_score,
+            json.dumps(safe_answers),
+            json.dumps(safe_result),
+        ))
+
+        result_id = cursor.fetchone()[0]
         conn.commit()
-        result_id = cursor.lastrowid
+        cursor.close()
         conn.close()
-        
         return result_id
-    
+
     def get_all_genes(self):
-        """Get all genes"""
         conn = self.get_connection()
-        cursor = conn.cursor()
-        
+        cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
         cursor.execute('SELECT * FROM genes')
         genes = cursor.fetchall()
+        cursor.close()
         conn.close()
-        
-        return [dict(g) for g in genes]
+
+        return [_row_to_dict(g) for g in genes]

@@ -51,8 +51,21 @@ QUESTION_BANK = {
 }
 
 def get_questions_for_gene(gene_name):
-    """Get questions for a specific gene"""
-    return QUESTION_BANK.get(gene_name, [])
+    """Get questions for a specific gene, falling back to general screening prompts."""
+    gene_specific_questions = QUESTION_BANK.get(gene_name)
+    if gene_specific_questions:
+        return gene_specific_questions
+
+    fallback_questions = []
+    for question in get_all_questions():
+        if gene_name in question.get("genes", []):
+            fallback_questions.append({
+                "question": question["question"],
+                "category": "general_screening",
+                "weight": question.get("weight", 0.5),
+            })
+
+    return fallback_questions
 
 def get_all_questions():
     """Get all questions for initial screening"""
